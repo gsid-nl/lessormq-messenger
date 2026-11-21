@@ -40,7 +40,7 @@ same cluster. Options, in the DSN query or under `options:`:
 | `api_key` | DSN user | a key with the publish and/or consume scope |
 | `wait_seconds` | 5 | how long a claim waits for a message (at most 20) |
 | `lease_seconds` | the queue's | lease per claim, and per keepalive |
-| `consumer` | host name | shown to administrators |
+| `consumer` | host:pid | shown to administrators, in the server's list of workers |
 | `route` | none | the path this worker runs jobs through (VPN, proxy, account) |
 | `route_file` | none | a file holding the route, read on every claim |
 | `route_required` | false | skip claiming while there is no route |

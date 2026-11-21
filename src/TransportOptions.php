@@ -15,7 +15,7 @@ final class TransportOptions
     ];
 
     /**
-     * @param string      $consumer      shown to administrators; the host name by default
+     * @param string      $consumer      shown to administrators; host:pid by default
      * @param string|null $route         a fixed route for every claim
      * @param string|null $routeFile     a file whose content is the route, read on every claim
      *                                   (a VPN that rotates, say); empty or missing means none
@@ -64,7 +64,7 @@ final class TransportOptions
             $options['api_key'],
             (int) ($options['wait_seconds'] ?? 5),
             isset($options['lease_seconds']) ? (int) $options['lease_seconds'] : null,
-            (string) ($options['consumer'] ?? (gethostname() ?: '')),
+            (string) ($options['consumer'] ?? (\LessorMQ\Worker::defaultConsumer() ?? '')),
             isset($options['route']) && $options['route'] !== '' ? (string) $options['route'] : null,
             isset($options['route_file']) && $options['route_file'] !== '' ? (string) $options['route_file'] : null,
             filter_var($options['route_required'] ?? false, FILTER_VALIDATE_BOOLEAN),
