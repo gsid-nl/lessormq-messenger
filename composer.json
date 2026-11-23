@@ -13,7 +13,6 @@
         "symfony/messenger": "^7.2"
     },
     "require-dev": {
-        "nyholm/psr7": "^1.8",
         "phpunit/phpunit": "^11.5",
         "symfony/http-client": "^7.3",
         "symfony/property-access": "^7.2",

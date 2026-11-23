@@ -11,7 +11,8 @@ composer require lessormq/messenger
 With Flex the bundle registers itself; otherwise add
 `LessorMQ\Messenger\LessorMQMessengerBundle::class => ['all' => true]` to
 `config/bundles.php`. It uses the app's PSR-18 client when there is one, and discovers
-one otherwise. Give it a timeout above `wait_seconds`.
+one otherwise; `symfony/http-client` is all it needs, the PSR-7 messages come with
+lessormq/client. Give it a timeout above `wait_seconds`.
 
 ## Configure
 

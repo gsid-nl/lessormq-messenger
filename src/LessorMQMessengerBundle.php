@@ -13,7 +13,8 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
  * Registers the lessormq:// transport factory. Uses the app's PSR-18 client when there
- * is one (Symfony HttpClient with nyholm/psr7, say), else discovers one.
+ * is one (Symfony HttpClient's, say), else discovers one; lessormq/client brings the
+ * PSR-7 messages (nyholm/psr7).
  */
 final class LessorMQMessengerBundle extends AbstractBundle
 {
