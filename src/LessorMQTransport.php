@@ -162,9 +162,10 @@ final class LessorMQTransport implements TransportInterface, KeepaliveReceiverIn
             $headers[self::BASE64_HEADER] = 'base64';
             $body = base64_encode($body);
         } else {
-            // A JSON body is stored as JSON, so the queue's messages can be read.
-            $decoded = json_decode($body, true);
-            $body = is_array($decoded) ? $decoded : $body;
+            // A JSON body is stored as JSON, so the queue's messages can be read. Objects
+            // stay objects, an empty one too ({} would become [] as an array).
+            $decoded = json_decode($body);
+            $body = is_array($decoded) || is_object($decoded) ? $decoded : $body;
         }
 
         $delay = $envelope->last(DelayStamp::class)?->getDelay();

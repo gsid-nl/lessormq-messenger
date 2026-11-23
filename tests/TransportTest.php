@@ -54,6 +54,26 @@ class TransportTest extends TestCase
         $this->assertSame('m-1', $sent->last(TransportMessageIdStamp::class)->getId());
     }
 
+    public function testAnEmptyObjectStaysAnObject(): void
+    {
+        $serializer = new class implements SerializerInterface {
+            public function encode(Envelope $envelope): array
+            {
+                return ['body' => '{"tick":{},"list":[]}', 'headers' => ['type' => 'Tick']];
+            }
+
+            public function decode(array $encodedEnvelope): Envelope
+            {
+                return new Envelope(new \stdClass());
+            }
+        };
+        $this->http->reply(201, $this->published())->reply(201, $this->published());
+
+        $this->transport(serializer: $serializer)->send(new Envelope(new Greeting()));
+
+        $this->assertStringContainsString('"body":{"tick":{},"list":[]}', $this->http->raw(0));
+    }
+
     public function testGetDecodesTheEnvelopeAndKeepsTheLease(): void
     {
         $this->http->reply(201, $this->published());
