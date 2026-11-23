@@ -127,6 +127,11 @@ final class LessorMQTransport implements TransportInterface, KeepaliveReceiverIn
      * Messenger passes its alarm interval (5 s by default), which is how often it calls
      * this, not how long the lease should last; the lease is renewed for the transport's
      * lease_seconds, or the queue's.
+     *
+     * Messenger calls this from its SIGALRM handler, in the middle of whatever the handler
+     * is doing, and before Symfony 7.4.23 an exception thrown here became the handler's:
+     * the message failed although only the extend did. A failed extend is logged instead;
+     * the next alarm tries again, and an ack after the lease ran out says lease_lost.
      */
     public function keepalive(Envelope $envelope, ?int $seconds = null): void
     {
@@ -137,7 +142,10 @@ final class LessorMQTransport implements TransportInterface, KeepaliveReceiverIn
         } catch (LeaseLostException $e) {
             $this->logger->warning('Lease lost while the handler ran', ['message_id' => $lease->message->id]);
         } catch (LessorMQException $e) {
-            throw new TransportException($e->getMessage(), 0, $e);
+            $this->logger->warning('Extending the lease failed; the next keepalive tries again', [
+                'message_id' => $lease->message->id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

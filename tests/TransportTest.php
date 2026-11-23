@@ -154,6 +154,19 @@ class TransportTest extends TestCase
         $this->assertSame(['receipt' => 'r-1', 'lease_seconds' => 600], $this->http->body(0));
     }
 
+    public function testAFailedKeepaliveIsLoggedNotThrown(): void
+    {
+        // Messenger runs keepalive from its alarm, in the middle of the handler: an
+        // exception here would fail the message although only the extend failed.
+        for ($i = 0; $i < 5; $i++) {
+            $this->http->failNetwork();
+        }
+
+        $this->transport()->keepalive($this->receivedEnvelope(), 5);
+
+        $this->assertNotEmpty($this->http->sent);
+    }
+
     public function testRouteFileIsReadOnEveryClaimAndRequiredMeansSkip(): void
     {
         $file = tempnam(sys_get_temp_dir(), 'route');

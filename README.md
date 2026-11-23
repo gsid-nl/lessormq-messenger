@@ -10,9 +10,11 @@ composer require lessormq/messenger
 
 With Flex the bundle registers itself; otherwise add
 `LessorMQ\Messenger\LessorMQMessengerBundle::class => ['all' => true]` to
-`config/bundles.php`. It uses the app's PSR-18 client when there is one, and discovers
-one otherwise; `symfony/http-client` is all it needs, the PSR-7 messages come with
-lessormq/client. Give it a timeout above `wait_seconds`.
+`config/bundles.php`. Each transport discovers a PSR-18 client of its own rather than
+using the app's, because `--keepalive` extends the lease from a signal handler while your
+handler may be in the middle of a request on the app's client, which Symfony HttpClient
+does not allow. `symfony/http-client` is all it needs, the PSR-7 messages come with
+lessormq/client.
 
 ## Configure
 
@@ -63,7 +65,8 @@ There is no option for retries, delays or dead-lettering: set those on the queue
 - A failure transport is not needed: failed messages stay in the queue's dead-letter
   set, where they can be inspected and replayed.
 - Long handlers: run `messenger:consume --keepalive` and the lease is renewed (for
-  `lease_seconds`, or the queue's lease) every few seconds.
+  `lease_seconds`, or the queue's lease) every few seconds. A failed renewal is logged
+  and tried again at the next one; it does not fail the message.
 - `DelayStamp` becomes the message's delay. Dispatch with
   `new LessorMQ\Messenger\DedupKeyStamp('order-7')` for at most one open message per
   key, and `new MaxAttemptsStamp(3)` to ask for fewer or more attempts than the queue's

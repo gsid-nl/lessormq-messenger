@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace LessorMQ\Messenger;
 
-use Psr\Http\Client\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -12,9 +11,11 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
- * Registers the lessormq:// transport factory. Uses the app's PSR-18 client when there
- * is one (Symfony HttpClient's, say), else discovers one; lessormq/client brings the
- * PSR-7 messages (nyholm/psr7).
+ * Registers the lessormq:// transport factory. Every transport gets an HTTP client of its
+ * own (discovered: Symfony HttpClient's, say; lessormq/client brings the PSR-7 messages),
+ * not the app's: Messenger's keepalive runs from a signal handler while the handler may be
+ * in the middle of a request of its own, and Symfony HttpClient refuses a second request
+ * on a client that is still processing one ("Userland callback cannot use the client").
  */
 final class LessorMQMessengerBundle extends AbstractBundle
 {
@@ -26,7 +27,7 @@ final class LessorMQMessengerBundle extends AbstractBundle
         $container->services()
             ->set('lessormq.messenger.transport_factory', LessorMQTransportFactory::class)
             ->args([
-                service(ClientInterface::class)->nullOnInvalid(),
+                null,
                 service('logger')->nullOnInvalid(),
             ])
             ->tag('messenger.transport_factory')
