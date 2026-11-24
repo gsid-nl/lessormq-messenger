@@ -1,8 +1,11 @@
-# LessorMQ transport for Symfony Messenger
+# LessorMQ for Symfony Messenger
 
-A Messenger transport on [LessorMQ](../../docs/protocol.md), built on
-[lessormq/client](../php). The queue decides what happens to a failed message
+A Messenger transport on [LessorMQ](https://lessormq.dev), built on
+[lessormq/client](https://lessormq.dev/docs/clients/php). The queue decides what happens to a failed message
 (retries, backoff, the dead-letter set); the transport only claims, acks and fails.
+Symfony 7.2+ and PHP 8.2+. Package `lessormq/messenger`.
+
+## Install
 
 ```sh
 composer require lessormq/messenger
@@ -52,6 +55,36 @@ same cluster. Options, in the DSN query or under `options:`:
 There is no option for retries, delays or dead-lettering: set those on the queue
 (`PATCH /v1/queues/{queue}`).
 
+## Dispatch
+
+Dispatch as always; the routing above sends the message to the queue.
+
+```php
+use LessorMQ\Messenger\DedupKeyStamp;
+use LessorMQ\Messenger\MaxAttemptsStamp;
+use Symfony\Component\Messenger\Stamp\DelayStamp;
+
+$bus->dispatch(new SendMail('ada@example.com'), [
+    new DedupKeyStamp('welcome-ada'), // at most one open message per key
+    new DelayStamp(60_000),           // the message's delay
+    new MaxAttemptsStamp(3),          // fewer or more attempts than the queue's default
+]);
+```
+
+A JSON body (the Symfony serializer) is stored as JSON, so messages can be read in the
+queue; any other body travels as a string.
+
+## Run workers
+
+```sh
+bin/console messenger:consume mail --keepalive
+```
+
+With `--keepalive` the lease is renewed (for `lease_seconds`, or the queue's lease) every
+few seconds while a handler runs; use it for handlers that can take longer than the
+lease. A failed renewal is logged and tried again at the next one; it does not fail the
+message. `messenger:stats` shows the queue's ready plus delayed messages.
+
 ## How it behaves
 
 - A handler that succeeds: the message is acked.
@@ -64,18 +97,10 @@ There is no option for retries, delays or dead-lettering: set those on the queue
   the original, so the queue would never count the attempt. Hence `max_retries: 0`.
 - A failure transport is not needed: failed messages stay in the queue's dead-letter
   set, where they can be inspected and replayed.
-- Long handlers: run `messenger:consume --keepalive` and the lease is renewed (for
-  `lease_seconds`, or the queue's lease) every few seconds. A failed renewal is logged
-  and tried again at the next one; it does not fail the message.
-- `DelayStamp` becomes the message's delay. Dispatch with
-  `new LessorMQ\Messenger\DedupKeyStamp('order-7')` for at most one open message per
-  key, and `new MaxAttemptsStamp(3)` to ask for fewer or more attempts than the queue's
-  default.
-- A JSON body (the Symfony serializer) is stored as JSON, so messages can be read in the
-  queue; any other body travels as a string.
-- `messenger:stats` shows the queue's ready plus delayed messages.
+- `DelayStamp` is the message's delay, `MaxAttemptsStamp` its `max_attempts`,
+  `DedupKeyStamp` its dedup key.
 
-## Moving from another transport
+## Moving from another queue
 
 - Let the queue decide about retries: set the transport's `retry_strategy.max_retries`
   to 0 and the queue's `max_attempts` (and `backoff`) to what the retry strategy did.
@@ -85,6 +110,17 @@ There is no option for retries, delays or dead-lettering: set those on the queue
   queue's dead-letter set, where an administrator can look at and replay them.
 - Deduplication is a `DedupKeyStamp` on dispatch.
 - Workers on different network paths (VPN exits, proxies) pass theirs as `route`, or
-  `route_file` when it can change while the worker runs; see [routes](../../docs/concepts.md#routes).
+  `route_file` when it can change while the worker runs; see [routes](https://lessormq.dev/docs/concepts#routes).
 - Run the old and the new transport side by side and move one message class at a time
   in `framework.messenger.routing`.
+
+## Development
+
+```sh
+cd clients/symfony-messenger
+composer install
+vendor/bin/phpunit
+```
+
+The transport uses lessormq/client from `../php` (a path repository), so a change there
+is tested here at once.
