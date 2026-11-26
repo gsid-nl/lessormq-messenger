@@ -219,6 +219,11 @@ class TransportTest extends TestCase
         $request = $this->http->sent[0];
         $this->assertSame('http://queue-svc:8080/v1/queues/mail/claims', (string) $request->getUri());
         $this->assertSame('Bearer lmq_secret', $request->getHeaderLine('Authorization'));
+        $this->assertMatchesRegularExpression(
+            '#^lessormq-messenger/\S+ lessormq-php/\S+$#',
+            $request->getHeaderLine('User-Agent'),
+        );
+        $this->assertStringNotContainsString('unknown', $request->getHeaderLine('User-Agent'));
         $this->assertSame(2, $this->http->body(0)['wait_seconds']);
         $this->assertSame('proxy-1', $this->http->body(0)['route']);
 

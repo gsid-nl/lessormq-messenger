@@ -6,6 +6,7 @@ namespace LessorMQ\Messenger;
 
 use LessorMQ\Client;
 use LessorMQ\ClientOptions;
+use LessorMQ\UserAgent;
 use Psr\Http\Client\ClientInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
@@ -51,7 +52,10 @@ final class LessorMQTransportFactory implements TransportFactoryInterface
         $client = new Client(
             $baseUrl,
             $transport->apiKey,
-            new ClientOptions(httpRetries: $transport->httpRetries, userAgent: 'lessormq-messenger/1'),
+            new ClientOptions(
+                httpRetries: $transport->httpRetries,
+                userAgent: UserAgent::product('lessormq-messenger', 'lessormq/messenger') . ' ' . UserAgent::default(),
+            ),
             $this->httpClient,
             null,
             null,
